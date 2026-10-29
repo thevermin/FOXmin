@@ -10,6 +10,8 @@ Free and open source · macOS 13 or newer · Apple Silicon and Intel
 
 [**Download**](../../releases/latest) · [How it works](#how-it-works) · [Install](#install) · [FAQ](#faq) · [☕ Support on Ko-fi](https://ko-fi.com/thevermin)
 
+<img src="docs/media/demo.gif" alt="Without FOXmin, a background window needs two clicks; with FOXmin, one click brings it forward and presses the button" width="720">
+
 </div>
 
 > [!NOTE]
