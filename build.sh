@@ -45,7 +45,14 @@ codesign --force --sign "$IDENTITY" --timestamp=none "$APP"
 if [ "$IDENTITY" = "-" ]; then
   echo "Firma: ad-hoc (no se encontró el certificado \"$CERT\")"
 else
-  codesign -dvv "$APP" 2>&1 | grep -q "Authority=$IDENTITY" || { echo "Error: falló la firma con \"$IDENTITY\"" >&2; exit 1; }
+  # Se guarda la salida antes de buscar: con «| grep -q» y pipefail, codesign puede cortarse a mitad
+  # de la salida y el chequeo falla aunque la firma esté bien.
+  INFO=$(codesign -dvv "$APP" 2>&1)
+  if ! grep -q "Authority=$IDENTITY" <<<"$INFO"; then
+    echo "Error: falló la firma con \"$IDENTITY\"" >&2
+    grep "Authority" <<<"$INFO" >&2 || true
+    exit 1
+  fi
   echo "Firma: $IDENTITY"
 fi
 
