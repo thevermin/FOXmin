@@ -29,9 +29,9 @@ final class Settings {
 
         var title: String {
             switch self {
-            case .fast: return "Rápida"
-            case .normal: return "Normal"
-            case .patient: return "Paciente (apps lentas)"
+            case .fast: return L("Fast")
+            case .normal: return L("Normal")
+            case .patient: return L("Patient (slow apps)")
             }
         }
 

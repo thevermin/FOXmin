@@ -1,0 +1,35 @@
+/* FOXmin: textos de la app. La clave es el texto en inglés. */
+
+"FOXmin: on" = "FOXmin: encendido";
+"FOXmin: off" = "FOXmin: apagado";
+"FOXmin is on · click to turn it off, right-click for the menu" = "FOXmin está encendido · click para apagarlo, click derecho para el menú";
+"FOXmin is off · click to turn it on, right-click for the menu" = "FOXmin está apagado · click para encenderlo, click derecho para el menú";
+"⬆︎ Download FOXmin %@…" = "⬆︎ Descargar FOXmin %@…";
+"⚠︎ Accessibility permission needed…" = "⚠︎ Falta el permiso de Accesibilidad…";
+"Enabled" = "Activado";
+"Right click too" = "Click derecho también";
+"Middle click too" = "Click del medio también";
+"Activation speed" = "Velocidad de activación";
+"Fast" = "Rápida";
+"Normal" = "Normal";
+"Patient (slow apps)" = "Paciente (apps lentas)";
+"Include %@ again" = "Volver a incluir %@";
+"Exclude %@" = "Excluir %@";
+"Click to include it again" = "Click para volver a incluirla";
+"Add app…" = "Agregar app…";
+"Excluded apps" = "Apps excluidas";
+"Open at login" = "Abrir al iniciar sesión";
+"About FOXmin" = "Acerca de FOXmin";
+"Check for updates…" = "Buscar actualizaciones…";
+"Quit FOXmin" = "Salir de FOXmin";
+"Choose the apps FOXmin should ignore" = "Elegí las apps que FOXmin tiene que ignorar";
+"Exclude" = "Excluir";
+"One click on any window activates it and does what you clicked." = "Un solo click en cualquier ventana la activa y hace lo que clickeaste.";
+"A new version is available: FOXmin %@" = "Hay una versión nueva: FOXmin %@";
+"You have %@." = "Tenés la %@.";
+"Download" = "Descargar";
+"Later" = "Más tarde";
+"You’re up to date" = "Estás al día";
+"FOXmin %@ is the latest version." = "FOXmin %@ es la última versión.";
+"Couldn’t check for updates" = "No se pudo buscar actualizaciones";
+"Couldn’t change Open at login" = "No se pudo cambiar el inicio automático";

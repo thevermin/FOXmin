@@ -62,11 +62,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             ?? NSImage(systemSymbolName: active ? "cursorarrow.click.2" : "cursorarrow",
                        accessibilityDescription: nil)
         image?.isTemplate = true
-        image?.accessibilityDescription = active ? "FOXmin: encendido" : "FOXmin: apagado"
+        image?.accessibilityDescription = active ? L("FOXmin: on") : L("FOXmin: off")
         statusItem.button?.image = image
         statusItem.button?.toolTip = active
-            ? "FOXmin está encendido · click para apagarlo, click derecho para el menú"
-            : "FOXmin está apagado · click para encenderlo, click derecho para el menú"
+            ? L("FOXmin is on · click to turn it off, right-click for the menu")
+            : L("FOXmin is off · click to turn it on, right-click for the menu")
     }
 
     @objc private func statusItemClicked() {
@@ -93,7 +93,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let frontApp = NSWorkspace.shared.frontmostApplication
 
         if let release = updater.available {
-            let update = NSMenuItem(title: "⬆︎ Descargar FOXmin \(release.version)…",
+            let update = NSMenuItem(title: L("⬆︎ Download FOXmin %@…", release.version),
                                     action: #selector(openAvailableUpdate), keyEquivalent: "")
             update.target = self
             menu.addItem(update)
@@ -101,17 +101,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         if !interceptor.isRunning {
-            let warning = NSMenuItem(title: "⚠︎ Falta el permiso de Accesibilidad…",
+            let warning = NSMenuItem(title: L("⚠︎ Accessibility permission needed…"),
                                      action: #selector(openAccessibilitySettings), keyEquivalent: "")
             warning.target = self
             menu.addItem(warning)
             menu.addItem(.separator())
         }
 
-        menu.addItem(item("Activado", #selector(toggleEnabled), on: settings.enabled))
+        menu.addItem(item(L("Enabled"), #selector(toggleEnabled), on: settings.enabled))
         menu.addItem(.separator())
-        menu.addItem(item("Click derecho también", #selector(toggleRight), on: settings.rightClick))
-        menu.addItem(item("Click del medio también", #selector(toggleMiddle), on: settings.middleClick))
+        menu.addItem(item(L("Right click too"), #selector(toggleRight), on: settings.rightClick))
+        menu.addItem(item(L("Middle click too"), #selector(toggleMiddle), on: settings.middleClick))
 
         let speedMenu = NSMenu()
         for speed in Settings.Speed.allCases {
@@ -119,7 +119,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             entry.representedObject = speed.rawValue
             speedMenu.addItem(entry)
         }
-        let speedItem = NSMenuItem(title: "Velocidad de activación", action: nil, keyEquivalent: "")
+        let speedItem = NSMenuItem(title: L("Activation speed"), action: nil, keyEquivalent: "")
         speedItem.submenu = speedMenu
         menu.addItem(speedItem)
         menu.addItem(.separator())
@@ -128,7 +128,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
            bundleID != Bundle.main.bundleIdentifier {
             let name = frontApp.localizedName ?? bundleID
             let excluded = settings.isExcluded(bundleID)
-            let toggle = item(excluded ? "Volver a incluir \(name)" : "Excluir \(name)",
+            let toggle = item(excluded ? L("Include %@ again", name) : L("Exclude %@", name),
                               #selector(toggleExcludedApp(_:)), on: false)
             toggle.representedObject = bundleID
             menu.addItem(toggle)
@@ -138,23 +138,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         for bundleID in settings.excludedApps.sorted() {
             let entry = item(displayName(for: bundleID), #selector(toggleExcludedApp(_:)), on: true)
             entry.representedObject = bundleID
-            entry.toolTip = "Click para volver a incluirla"
+            entry.toolTip = L("Click to include it again")
             submenu.addItem(entry)
         }
         if !settings.excludedApps.isEmpty { submenu.addItem(.separator()) }
-        submenu.addItem(item("Agregar app…", #selector(addExcludedApp), on: false))
-        let parent = NSMenuItem(title: "Apps excluidas", action: nil, keyEquivalent: "")
+        submenu.addItem(item(L("Add app…"), #selector(addExcludedApp), on: false))
+        let parent = NSMenuItem(title: L("Excluded apps"), action: nil, keyEquivalent: "")
         parent.submenu = submenu
         menu.addItem(parent)
 
         menu.addItem(.separator())
-        menu.addItem(item("Abrir al iniciar sesión", #selector(toggleLaunchAtLogin),
+        menu.addItem(item(L("Open at login"), #selector(toggleLaunchAtLogin),
                           on: SMAppService.mainApp.status == .enabled))
         menu.addItem(.separator())
-        menu.addItem(item("Acerca de FOXmin", #selector(showAbout), on: false))
-        menu.addItem(item("Buscar actualizaciones…", #selector(checkForUpdates), on: false))
+        menu.addItem(item(L("About FOXmin"), #selector(showAbout), on: false))
+        menu.addItem(item(L("Check for updates…"), #selector(checkForUpdates), on: false))
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Salir de FOXmin",
+        menu.addItem(NSMenuItem(title: L("Quit FOXmin"),
                                 action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
     }
 
@@ -197,8 +197,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func addExcludedApp() {
         NSApp.activate(ignoringOtherApps: true)
         let panel = NSOpenPanel()
-        panel.title = "Elegí las apps que FOXmin tiene que ignorar"
-        panel.prompt = "Excluir"
+        panel.title = L("Choose the apps FOXmin should ignore")
+        panel.prompt = L("Exclude")
         panel.directoryURL = URL(fileURLWithPath: "/Applications")
         panel.allowedContentTypes = [.applicationBundle]
         panel.allowsMultipleSelection = true
@@ -214,7 +214,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func showAbout() {
         NSApp.activate(ignoringOtherApps: true)
         let credits = NSAttributedString(
-            string: "Click-through para macOS: un solo click activa la ventana y hace lo que clickeaste.\n\(UpdateChecker.releasesPage.absoluteString)",
+            string: L("One click on any window activates it and does what you clicked.") + "\n" + UpdateChecker.releasesPage.absoluteString,
             attributes: [.font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
                          .foregroundColor: NSColor.secondaryLabelColor])
         NSApp.orderFrontStandardAboutPanel(options: [.credits: credits])
@@ -228,17 +228,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let alert = NSAlert()
             switch result {
             case .success(let release?):
-                alert.messageText = "Hay una versión nueva: FOXmin \(release.version)"
-                alert.informativeText = "Tenés la \(UpdateChecker.currentVersion)."
-                alert.addButton(withTitle: "Descargar")
-                alert.addButton(withTitle: "Más tarde")
+                alert.messageText = L("A new version is available: FOXmin %@", release.version)
+                alert.informativeText = L("You have %@.", UpdateChecker.currentVersion)
+                alert.addButton(withTitle: L("Download"))
+                alert.addButton(withTitle: L("Later"))
                 if alert.runModal() == .alertFirstButtonReturn { NSWorkspace.shared.open(release.url) }
             case .success(nil):
-                alert.messageText = "Estás al día"
-                alert.informativeText = "FOXmin \(UpdateChecker.currentVersion) es la última versión."
+                alert.messageText = L("You’re up to date")
+                alert.informativeText = L("FOXmin %@ is the latest version.", UpdateChecker.currentVersion)
                 alert.runModal()
             case .failure(let error):
-                alert.messageText = "No se pudo buscar actualizaciones"
+                alert.messageText = L("Couldn’t check for updates")
                 alert.informativeText = error.localizedDescription
                 alert.runModal()
             }
@@ -258,7 +258,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
         } catch {
             let alert = NSAlert()
-            alert.messageText = "No se pudo cambiar el inicio automático"
+            alert.messageText = L("Couldn’t change Open at login")
             alert.informativeText = error.localizedDescription
             alert.runModal()
         }

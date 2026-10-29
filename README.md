@@ -42,6 +42,7 @@ sibling of [VRmin](https://github.com/thevermin/VRmin), which plays SteamVR game
 - 🚫 **Excluded apps**: keep the normal macOS behavior in the apps you choose
 - ⏱️ **Activation speed**: give slow apps a little more time to wake up
 - 🔄 **Update check**: lets you know when there's a new version
+- 🌍 **English and Spanish**: follows your Mac's language
 - 🪶 Lives in the menu bar, no Dock icon: **click it to turn FOXmin on or off**, right‑click for the menu
 
 It never touches the menu bar, the Dock, open menus, popovers, the desktop or floating panels.
@@ -79,8 +80,8 @@ You need Xcode's Command Line Tools (`xcode-select --install`).
 ./build.sh --zip      # also makes the zip for Releases
 ```
 
-With the default ad‑hoc signature, every new build looks like a different app to macOS, and the Accessibility
-permission may stop working. Sign with a fixed certificate to avoid it:
+Without a fixed certificate, the app is signed ad‑hoc: every new build looks like a different app to macOS, and the
+Accessibility permission may stop working. Sign with your own certificate to avoid it:
 
 ```bash
 SIGN_IDENTITY="Your certificate" ./build.sh

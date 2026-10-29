@@ -1,9 +1,26 @@
 #!/bin/bash
 # Compila FOXmin y arma FOXmin.app en ./build
+#   ./build.sh          compila la app
+#   ./build.sh --zip    además arma build/FOXmin-<versión>.zip para GitHub Releases
+#                       (exige la firma con el certificado fijo: un release nunca sale firmado ad-hoc)
 set -euo pipefail
 cd "$(dirname "$0")"
 
 APP="build/FOXmin.app"
+
+# Firma: el certificado fijo de thevermin (el mismo de VRmin) si está en el llavero de esta Mac.
+# Con la misma firma, macOS no vuelve a pedir el permiso de Accesibilidad al actualizar.
+# Se puede elegir otro con SIGN_IDENTITY="Nombre del certificado" ./build.sh
+CERT="${SIGN_IDENTITY:-QuestVRBridge Local}"
+if security find-identity -p codesigning 2>/dev/null | grep -q "\"$CERT\""; then
+  IDENTITY="$CERT"
+else
+  IDENTITY="-"
+fi
+if [ "${1:-}" = "--zip" ] && [ "$IDENTITY" = "-" ]; then
+  echo "Error: para armar el zip de un release hace falta el certificado \"$CERT\" en el llavero." >&2
+  exit 1
+fi
 
 swift build -c release
 BIN="$(swift build -c release --show-bin-path)/FOXmin"
@@ -13,6 +30,7 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/FOXmin"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 cp Resources/MenuBarIcon*.png "$APP/Contents/Resources/"
+cp -R Resources/*.lproj "$APP/Contents/Resources/"
 
 # Ícono de la app (.icns) armado desde Resources/AppIcon.png
 ICONSET="build/AppIcon.iconset"
@@ -23,15 +41,20 @@ for s in 16 32 128 256 512; do
 done
 iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns" || echo "Aviso: no se pudo armar el ícono"
 
-# Firma ad-hoc por defecto. Para no tener que volver a dar el permiso de Accesibilidad
-# en cada build, firmá con un certificado fijo: SIGN_IDENTITY="Mi Certificado" ./build.sh
-codesign --force --sign "${SIGN_IDENTITY:--}" "$APP"
+codesign --force --sign "$IDENTITY" --timestamp=none "$APP"
+if [ "$IDENTITY" = "-" ]; then
+  echo "Firma: ad-hoc (no se encontró el certificado \"$CERT\")"
+else
+  codesign -dvv "$APP" 2>&1 | grep -q "Authority=$IDENTITY" || { echo "Error: falló la firma con \"$IDENTITY\"" >&2; exit 1; }
+  echo "Firma: $IDENTITY"
+fi
 
-# --zip: deja también el .zip listo para subir a GitHub Releases
 if [ "${1:-}" = "--zip" ]; then
   VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" Resources/Info.plist)
-  ditto -c -k --keepParent "$APP" "build/FOXmin-$VERSION.zip"
-  echo "Zip: build/FOXmin-$VERSION.zip"
+  ZIP="build/FOXmin-$VERSION.zip"
+  rm -f "$ZIP"
+  ditto -c -k --keepParent "$APP" "$ZIP"
+  echo "Zip: $ZIP"
 fi
 
 echo "Listo: $APP"

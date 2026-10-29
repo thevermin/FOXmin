@@ -1,0 +1,35 @@
+/* FOXmin: textos de la app. La clave es el texto en inglés. */
+
+"FOXmin: on" = "FOXmin: on";
+"FOXmin: off" = "FOXmin: off";
+"FOXmin is on · click to turn it off, right-click for the menu" = "FOXmin is on · click to turn it off, right-click for the menu";
+"FOXmin is off · click to turn it on, right-click for the menu" = "FOXmin is off · click to turn it on, right-click for the menu";
+"⬆︎ Download FOXmin %@…" = "⬆︎ Download FOXmin %@…";
+"⚠︎ Accessibility permission needed…" = "⚠︎ Accessibility permission needed…";
+"Enabled" = "Enabled";
+"Right click too" = "Right click too";
+"Middle click too" = "Middle click too";
+"Activation speed" = "Activation speed";
+"Fast" = "Fast";
+"Normal" = "Normal";
+"Patient (slow apps)" = "Patient (slow apps)";
+"Include %@ again" = "Include %@ again";
+"Exclude %@" = "Exclude %@";
+"Click to include it again" = "Click to include it again";
+"Add app…" = "Add app…";
+"Excluded apps" = "Excluded apps";
+"Open at login" = "Open at login";
+"About FOXmin" = "About FOXmin";
+"Check for updates…" = "Check for updates…";
+"Quit FOXmin" = "Quit FOXmin";
+"Choose the apps FOXmin should ignore" = "Choose the apps FOXmin should ignore";
+"Exclude" = "Exclude";
+"One click on any window activates it and does what you clicked." = "One click on any window activates it and does what you clicked.";
+"A new version is available: FOXmin %@" = "A new version is available: FOXmin %@";
+"You have %@." = "You have %@.";
+"Download" = "Download";
+"Later" = "Later";
+"You’re up to date" = "You’re up to date";
+"FOXmin %@ is the latest version." = "FOXmin %@ is the latest version.";
+"Couldn’t check for updates" = "Couldn’t check for updates";
+"Couldn’t change Open at login" = "Couldn’t change Open at login";

@@ -1,12 +1,12 @@
 name: Publicar versión
-# Compila FOXmin en una Mac de GitHub y arma la versión (como borrador) con el zip adjunto.
-# Las notas salen de docs/releases/<etiqueta>.md. La versión de la app sale de Resources/Info.plist.
-# Uso: Actions › Publicar versión › Run workflow. Después se revisa el borrador y se publica a mano.
+# Arma la versión en GitHub como borrador, con las notas de docs/releases/<etiqueta>.md.
+# Antes comprueba que la app compile en una Mac de GitHub, pero NO adjunta esa compilación:
+# el zip se arma en la Mac de thevermin con «./build.sh --zip» (firmado con el certificado fijo)
+# y se sube a mano al borrador antes de publicarlo.
 on:
   workflow_dispatch:
     inputs:
       tag: { description: 'Etiqueta (por ejemplo v0.1.0)', required: true }
-      draft: { description: 'Borrador (se revisa y se publica a mano)', type: boolean, default: true }
 
 jobs:
   release:
@@ -27,15 +27,14 @@ jobs:
           fi
           test -f "docs/releases/$tag.md" || { echo "::error::Faltan las notas: docs/releases/$tag.md"; exit 1; }
 
-      - name: Compilar
-        run: ./build.sh --zip
+      - name: Comprobar que compila
+        run: ./build.sh
 
-      - name: Publicar
+      - name: Crear el borrador
         run: |
           set -e
           tag="${{ inputs.tag }}"
           notes="docs/releases/$tag.md"
           title=$(head -1 "$notes" | sed 's/^## *//')
-          flag=""; [ "${{ inputs.draft }}" = "true" ] && flag="--draft"
-          gh release create "$tag" build/FOXmin-*.zip -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-            --title "$title" --notes-file "$notes" $flag
+          gh release create "$tag" -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "$title" --notes-file "$notes" --draft
