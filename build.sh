@@ -29,7 +29,9 @@ SLICES=()
 for arch in arm64 x86_64; do
   triple="$arch-apple-macosx13.0"
   swift build -c release --triple "$triple"
-  SLICES+=("$(swift build -c release --triple "$triple" --show-bin-path)/FOXmin")
+  # Se copia enseguida: algunas versiones de Swift usan la misma carpeta para las dos compilaciones
+  cp "$(swift build -c release --triple "$triple" --show-bin-path)/FOXmin" "build/FOXmin-$arch"
+  SLICES+=("build/FOXmin-$arch")
 done
 lipo -create "${SLICES[@]}" -output "$BIN"
 echo "Arquitecturas: $(lipo -archs "$BIN")"
