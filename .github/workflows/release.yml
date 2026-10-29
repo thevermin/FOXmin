@@ -1,0 +1,41 @@
+name: Publicar versión
+# Compila FOXmin en una Mac de GitHub y arma la versión (como borrador) con el zip adjunto.
+# Las notas salen de docs/releases/<etiqueta>.md. La versión de la app sale de Resources/Info.plist.
+# Uso: Actions › Publicar versión › Run workflow. Después se revisa el borrador y se publica a mano.
+on:
+  workflow_dispatch:
+    inputs:
+      tag: { description: 'Etiqueta (por ejemplo v0.1.0)', required: true }
+      draft: { description: 'Borrador (se revisa y se publica a mano)', type: boolean, default: true }
+
+jobs:
+  release:
+    runs-on: macos-latest
+    permissions: { contents: write }
+    env: { GH_TOKEN: "${{ github.token }}" }
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Revisar que la etiqueta coincida con la versión de la app
+        run: |
+          set -e
+          version=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" Resources/Info.plist)
+          tag="${{ inputs.tag }}"
+          if [ "v$version" != "$tag" ]; then
+            echo "::error::La etiqueta $tag no coincide con la versión de Info.plist ($version)"
+            exit 1
+          fi
+          test -f "docs/releases/$tag.md" || { echo "::error::Faltan las notas: docs/releases/$tag.md"; exit 1; }
+
+      - name: Compilar
+        run: ./build.sh --zip
+
+      - name: Publicar
+        run: |
+          set -e
+          tag="${{ inputs.tag }}"
+          notes="docs/releases/$tag.md"
+          title=$(head -1 "$notes" | sed 's/^## *//')
+          flag=""; [ "${{ inputs.draft }}" = "true" ] && flag="--draft"
+          gh release create "$tag" build/FOXmin-*.zip -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "$title" --notes-file "$notes" $flag
