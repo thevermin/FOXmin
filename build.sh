@@ -1,5 +1,5 @@
 #!/bin/bash
-# Compila FOXmin y arma FOXmin.app en ./build
+# Compila FOXmin (universal: Apple Silicon + Intel) y arma FOXmin.app en ./build
 #   ./build.sh          compila la app
 #   ./build.sh --zip    además arma build/FOXmin-<versión>.zip para GitHub Releases
 #                       (exige la firma con el certificado fijo: un release nunca sale firmado ad-hoc)
@@ -22,8 +22,17 @@ if [ "${1:-}" = "--zip" ] && [ "$IDENTITY" = "-" ]; then
   exit 1
 fi
 
-swift build -c release
-BIN="$(swift build -c release --show-bin-path)/FOXmin"
+# App universal: se compila una vez para Apple Silicon y otra para Intel, y se unen con lipo
+BIN="build/FOXmin-universal"
+mkdir -p build
+SLICES=()
+for arch in arm64 x86_64; do
+  triple="$arch-apple-macosx13.0"
+  swift build -c release --triple "$triple"
+  SLICES+=("$(swift build -c release --triple "$triple" --show-bin-path)/FOXmin")
+done
+lipo -create "${SLICES[@]}" -output "$BIN"
+echo "Arquitecturas: $(lipo -archs "$BIN")"
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"

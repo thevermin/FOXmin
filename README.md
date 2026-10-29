@@ -6,7 +6,7 @@
 
 **Click any window on your Mac and it just works. One click, like on Windows.**
 
-Free and open source · macOS 13 or newer
+Free and open source · macOS 13 or newer · Apple Silicon and Intel
 
 [**Download**](../../releases/latest) · [How it works](#how-it-works) · [Install](#install) · [FAQ](#faq) · [☕ Support on Ko-fi](https://ko-fi.com/thevermin)
 

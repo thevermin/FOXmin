@@ -1,0 +1,19 @@
+name: Compilar
+# Comprueba en una Mac de GitHub que la app compile (universal: Apple Silicon + Intel) en cada cambio.
+on:
+  push: { branches: [main] }
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compilar
+        run: ./build.sh
+      - name: Revisar que sea universal
+        run: |
+          archs=$(lipo -archs build/FOXmin.app/Contents/MacOS/FOXmin)
+          echo "Arquitecturas: $archs"
+          [[ "$archs" == *arm64* && "$archs" == *x86_64* ]] || { echo "::error::La app no es universal"; exit 1; }
