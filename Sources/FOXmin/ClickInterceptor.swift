@@ -13,9 +13,16 @@ final class ClickInterceptor {
     private struct Pending {
         let pid: pid_t
         let windowID: CGWindowID
+        let app: NSRunningApplication
         let started: CFAbsoluteTime
         var events: [CGEvent]
     }
+
+    /// Movimiento mínimo (en puntos) para considerar que hubo un arrastre de verdad.
+    private let dragThreshold: CGFloat = 4
+    /// Dos clicks más juntos que esto, y en el mismo lugar, son un doble click de verdad.
+    /// Si el segundo llega más tarde, es alguien que volvió a clickear porque "no pasó nada".
+    private let doubleClickWindow: CFTimeInterval = 0.25
 
     private let settings: Settings
     private var tap: CFMachPort?
@@ -106,7 +113,7 @@ final class ClickInterceptor {
         guard needsActivation(target) else { return pass }
         guard let copy = event.copy() else { return pass }
 
-        pending = Pending(pid: target.pid, windowID: target.windowID,
+        pending = Pending(pid: target.pid, windowID: target.windowID, app: app,
                           started: CFAbsoluteTimeGetCurrent(), events: [copy])
 
         // Salimos del callback rápido y activamos fuera de él.
@@ -139,23 +146,82 @@ final class ClickInterceptor {
         guard let pending else { return }
 
         let elapsed = CFAbsoluteTimeGetCurrent() - pending.started
-        let active = WindowLocator.isFrontmost(pending.pid)
-            && (WindowLocator.focusedWindowID(of: pending.pid).map { $0 == pending.windowID } ?? true)
-
         let speed = settings.speed
-        if active || elapsed > speed.activationTimeout {
+        if isReady(pending) || elapsed > speed.activationTimeout {
             DispatchQueue.main.asyncAfter(deadline: .now() + speed.settleDelay) { [weak self] in self?.replay() }
         } else {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.008) { [weak self] in self?.poll() }
         }
     }
 
+    /// La ventana está lista cuando la propia app ya se enteró de que está activa (no solo el
+    /// WindowServer) y la ventana clickeada es la que tiene el foco. Si esa "ventana" es una capa
+    /// interna que Accesibilidad no conoce (pasa en Chrome y Electron), alcanza con que la app esté activa.
+    private func isReady(_ pending: Pending) -> Bool {
+        guard pending.app.isActive, WindowLocator.isFrontmost(pending.pid) else { return false }
+        if WindowLocator.focusedWindowID(of: pending.pid) == pending.windowID { return true }
+        return WindowLocator.axWindow(pid: pending.pid, windowID: pending.windowID) == nil
+    }
+
     private func replay() {
-        guard let pending else { return }
-        self.pending = nil
-        for event in pending.events {
-            event.setIntegerValueField(.eventSourceUserData, value: Self.marker)
-            event.post(tap: .cgSessionEventTap)
+        guard let first = pending?.events.first else { pending = nil; return }
+
+        // El mouseDown va primero y solo; el resto un instante después, para que la app procese
+        // el click antes del mouseUp. Mientras tanto, lo que llegue se sigue guardando.
+        first.setIntegerValueField(.mouseEventClickState, value: 1)
+        post(first)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.012) { [weak self] in
+            guard let self, let current = self.pending else { return }
+            self.pending = nil
+            for event in self.cleaned(current.events).dropFirst() { self.post(event) }
         }
+    }
+
+    private func post(_ event: CGEvent) {
+        event.setIntegerValueField(.eventSourceUserData, value: Self.marker)
+        event.post(tap: .cgSessionEventTap)
+    }
+
+    /// Limpia lo que se juntó mientras se activaba la ventana:
+    /// - el primer click se reenvía como click simple;
+    /// - los movimientos mínimos durante el click se descartan (si no, seleccionan texto);
+    /// - un click extra que llegó tarde es alguien reintentando: se descarta entero
+    ///   (si no, la app lo recibe como doble click). Un doble click rápido de verdad se respeta.
+    private func cleaned(_ events: [CGEvent]) -> [CGEvent] {
+        guard let first = events.first else { return [] }
+        let origin = first.location
+        let distance = { (e: CGEvent) in hypot(e.location.x - origin.x, e.location.y - origin.y) }
+        let isDown = { (e: CGEvent) in [CGEventType.leftMouseDown, .rightMouseDown, .otherMouseDown].contains(e.type) }
+        let isUp = { (e: CGEvent) in [CGEventType.leftMouseUp, .rightMouseUp, .otherMouseUp].contains(e.type) }
+        let isDrag = { (e: CGEvent) in [CGEventType.leftMouseDragged, .rightMouseDragged, .otherMouseDragged].contains(e.type) }
+
+        // ¿Hubo un arrastre real durante el primer click?
+        var firstClick: [CGEvent] = []
+        for e in events { firstClick.append(e); if isUp(e) { break } }
+        let realDrag = firstClick.contains { isDrag($0) && distance($0) >= dragThreshold }
+
+        var result: [CGEvent] = []
+        var clickIndex = 0          // 0 = primer click, 1 = segundo…
+        var dropping = false        // estamos salteando un click de "reintento"
+        for e in events {
+            if isDown(e) {
+                if result.isEmpty {
+                    clickIndex = 0
+                } else {
+                    clickIndex += 1
+                    let gap = Double(e.timestamp &- first.timestamp) / 1_000_000_000
+                    let genuineDouble = gap <= doubleClickWindow && distance(e) < dragThreshold
+                    dropping = !genuineDouble
+                    if dropping { continue }
+                }
+            }
+            if dropping { if isUp(e) { dropping = false }; continue }
+            if isDrag(e) && clickIndex == 0 && !realDrag { continue }
+            if clickIndex == 0 && (isDown(e) || isUp(e)) {
+                e.setIntegerValueField(.mouseEventClickState, value: 1)
+            }
+            result.append(e)
+        }
+        return result
     }
 }

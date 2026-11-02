@@ -47,9 +47,9 @@ final class Settings {
         /// Pausa después de activar, para que la app termine de procesar el cambio de foco.
         var settleDelay: TimeInterval {
             switch self {
-            case .fast: return 0.005
-            case .normal: return 0.015
-            case .patient: return 0.06
+            case .fast: return 0.02
+            case .normal: return 0.04
+            case .patient: return 0.1
             }
         }
     }
