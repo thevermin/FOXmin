@@ -18,6 +18,12 @@ final class Settings {
         set { defaults.set(newValue, forKey: "rightClick") }
     }
 
+    /// Hover en ventanas de fondo (experimental): apagado por defecto.
+    var hoverBackground: Bool {
+        get { bool("hoverBackground", default: false) }
+        set { defaults.set(newValue, forKey: "hoverBackground") }
+    }
+
     var middleClick: Bool {
         get { bool("middleClick", default: false) }
         set { defaults.set(newValue, forKey: "middleClick") }
