@@ -21,6 +21,14 @@ enum WindowActivator {
         }
     }
 
+    /// Activa la app y hace key a la ventana, pero SIN traerla al frente: queda donde está.
+    static func activateWithoutRaising(pid: pid_t, windowID: CGWindowID) {
+        var psn = ProcessSerialNumber()
+        guard GetProcessForPID(pid, &psn) == noErr else { return }
+        _SLPSSetFrontProcessWithOptions(&psn, windowID, SLPSMode.noWindows.rawValue)
+        makeKeyWindow(&psn, windowID: windowID)
+    }
+
     /// Le dice al proceso que su ventana `windowID` pasa a ser la key window.
     /// El formato del event record es el que documentaron proyectos como AltTab y yabai.
     private static func makeKeyWindow(_ psn: inout ProcessSerialNumber, windowID: CGWindowID) {

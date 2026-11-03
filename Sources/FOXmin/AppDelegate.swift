@@ -6,7 +6,7 @@ import UniformTypeIdentifiers
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let settings = Settings()
     private lazy var interceptor = ClickInterceptor(settings: settings)
-    private lazy var hover = HoverForwarder(settings: settings)
+    private lazy var hover = HoverFocus(settings: settings)
     private var statusItem: NSStatusItem!
     private let menu = NSMenu()
     private var permissionTimer: Timer?
@@ -115,8 +115,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(.separator())
         menu.addItem(item(L("Right click too"), #selector(toggleRight), on: settings.rightClick))
         menu.addItem(item(L("Middle click too"), #selector(toggleMiddle), on: settings.middleClick))
-        menu.addItem(item(L("Hover in background windows (experimental)"), #selector(toggleHover),
-                          on: settings.hoverBackground))
+        menu.addItem(item(L("Focus windows on hover (experimental)"), #selector(toggleHover),
+                          on: settings.hoverFocus))
 
         let speedMenu = NSMenu()
         for speed in Settings.Speed.allCases {
@@ -189,13 +189,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func toggleMiddle() { settings.middleClick.toggle() }
 
     @objc private func toggleHover() {
-        settings.hoverBackground.toggle()
+        settings.hoverFocus.toggle()
         updateHover()
     }
 
     /// El hover solo corre si está elegido y hay permiso de Accesibilidad: apagado no gasta nada.
     private func updateHover() {
-        if settings.hoverBackground && interceptor.isRunning {
+        if settings.hoverFocus && interceptor.isRunning {
             hover.start()
         } else {
             hover.stop()

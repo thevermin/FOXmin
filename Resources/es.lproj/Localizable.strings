@@ -8,7 +8,7 @@
 "⚠︎ Accessibility permission needed…" = "⚠︎ Falta el permiso de Accesibilidad…";
 "Enabled" = "Activado";
 "Right click too" = "Click derecho también";
-"Hover in background windows (experimental)" = "Hover en ventanas de fondo (experimental)";
+"Focus windows on hover (experimental)" = "Activar ventanas al pasar el mouse (experimental)";
 "Middle click too" = "Click del medio también";
 "Activation speed" = "Velocidad de activación";
 "Fast" = "Rápida";
