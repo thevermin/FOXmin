@@ -103,8 +103,11 @@ final class HoverForwarder {
         let point = event.location
         let target = window(at: point, now: now)
 
-        // El cursor salió de la ventana de fondo que estábamos alimentando: le avisamos.
-        if let previous = hovered, previous.id != target?.id {
+        // El cursor salió de la app de fondo que estábamos alimentando: le avisamos una sola vez.
+        // Se compara por app y no por ventana: las apps tienen ventanas internas encimadas
+        // (barra de pestañas, barra de herramientas, contenido) y, comparando por ventana,
+        // cada pasada entre ellas era un "salió y volvió" que hacía parpadear la app.
+        if let previous = hovered, previous.pid != target?.pid {
             sendExit(from: previous, basedOn: event)
             hovered = nil
         }
