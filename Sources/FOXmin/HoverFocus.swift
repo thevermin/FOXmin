@@ -3,9 +3,11 @@ import ApplicationServices
 
 /// Activar ventanas al pasar el mouse (experimental).
 ///
-/// Cuando el mouse entra a una ventana de otra app y se queda un instante, esa app se activa
-/// SIN traer la ventana al frente: la ventana queda donde está, pero reacciona al mouse como si
-/// estuviera activa (los controles de un video, los hover de la página…).
+/// Cuando el mouse se detiene sobre una ventana de otra app, esa app se activa SIN traer la
+/// ventana al frente: la ventana queda donde está, pero reacciona al mouse como si estuviera
+/// activa (los controles de un video, los hover de la página…). Algunas apps (las de Electron,
+/// por ejemplo) se traen solas al frente al activarse: en ese caso se vuelven a poner delante,
+/// enseguida, las ventanas que estaban encima.
 ///
 /// Para no repetir los problemas de las apps de "focus follows mouse":
 /// - nunca le saca el foco a una ventana o app que acaba de aparecer (una ventana nueva, el
@@ -13,7 +15,7 @@ import ApplicationServices
 /// - nunca le saca el foco a un diálogo ni a los agentes de contraseña y Touch ID del sistema;
 /// - solo actúa cuando el mouse se MUEVE hacia una ventana: si está quieto sobre otra ventana
 ///   mientras escribís, no pasa nada;
-/// - pasar de largo por encima de una ventana no la activa.
+/// - solo activa cuando el mouse se DETIENE: barrer por encima de varias ventanas no activa ninguna.
 ///
 /// Gasto: un event tap de solo escucha, sin nada corriendo con el mouse quieto. La lista de
 /// ventanas se renueva como mucho 4 veces por segundo, y solo mientras el mouse se mueve.
@@ -25,8 +27,10 @@ final class HoverFocus {
         let layer: Int
     }
 
-    /// Cuánto tiene que quedarse el mouse sobre la ventana antes de activarla.
-    private let dwell: TimeInterval = 0.15
+    /// Cuánto tiene que quedarse quieto el mouse sobre la ventana antes de activarla.
+    private let dwell: TimeInterval = 0.12
+    /// Cuándo revisar, después de activar, si la app se puso delante sola.
+    private let restoreChecks: [TimeInterval] = [0.03, 0.1, 0.25]
     /// Después de que algo ajeno cambie el foco (una app o ventana nueva), cuánto se espera.
     private let holdAfterExternalFocus: CFTimeInterval = 1.5
     private let listLifetime: CFTimeInterval = 0.25
@@ -49,7 +53,6 @@ final class HoverFocus {
     private var frontFocusedWindow: CGWindowID?
     private var lastExternalFocus: CFAbsoluteTime = 0
     private var lastOwnActivation: (pid: pid_t, time: CFAbsoluteTime)?
-    private var candidatePID: pid_t?
     private var pendingWork: DispatchWorkItem?
 
     init(settings: Settings) {
@@ -103,7 +106,6 @@ final class HoverFocus {
         source = nil
         observer = nil
         pendingWork = nil
-        candidatePID = nil
         windows = []
     }
 
@@ -122,13 +124,11 @@ final class HoverFocus {
         let target = window(at: event.location)
         let pid = target?.pid
 
-        // Solo se programa algo cuando el mouse entra a otra app: moverse dentro de la misma no
-        // reinicia la espera, y salir antes de tiempo la cancela (pasar de largo no activa).
-        guard pid != candidatePID else { return }
-        candidatePID = pid
+        // Cada movimiento reinicia la espera: solo se activa cuando el mouse se detiene sobre la
+        // ventana. Barrer por encima de varias ventanas no activa ninguna.
         pendingWork?.cancel()
         pendingWork = nil
-        guard let target, target.pid != frontPID else { return }
+        guard let target, pid != frontPID else { return }
 
         let work = DispatchWorkItem { [weak self] in self?.activateIfStillThere(target) }
         pendingWork = work
@@ -148,8 +148,42 @@ final class HoverFocus {
         if let ax = WindowLocator.axWindow(pid: target.pid, windowID: current.id),
            !WindowLocator.isStandardWindow(ax) { return }
 
+        // Las ventanas de otras apps que estaban encima de la que se activa, de adelante hacia atrás.
+        refresh(now: CFAbsoluteTimeGetCurrent())
+        let above: [Win]
+        if let index = windows.firstIndex(where: { $0.id == current.id }) {
+            above = windows[..<index].filter { $0.layer == 0 && $0.pid != target.pid && $0.frame.intersects(current.frame) }
+        } else {
+            above = []
+        }
+
         lastOwnActivation = (target.pid, CFAbsoluteTimeGetCurrent())
         WindowActivator.activateWithoutRaising(pid: target.pid, windowID: current.id)
+
+        guard !above.isEmpty else { return }
+        for delay in restoreChecks {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                self?.restoreOrder(above, over: current.id)
+            }
+        }
+    }
+
+    /// Si la app activada se puso delante sola, vuelve a poner encima las ventanas que lo estaban,
+    /// en el mismo orden. No activa nada: solo reordena.
+    private func restoreOrder(_ above: [Win], over windowID: CGWindowID) {
+        guard let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] else { return }
+        var position: [CGWindowID: Int] = [:]
+        for (index, info) in list.enumerated() {
+            if let id = (info[kCGWindowNumber as String] as? NSNumber)?.uint32Value { position[id] = index }
+        }
+        guard let targetPosition = position[windowID] else { return }
+        let sunk = above.filter { (position[$0.id] ?? -1) > targetPosition }
+        // De atrás hacia adelante: cada una queda encima de la anterior, como estaban.
+        for win in sunk.reversed() {
+            if let ax = WindowLocator.axWindow(pid: win.pid, windowID: win.id) {
+                AXUIElementPerformAction(ax, kAXRaiseAction as CFString)
+            }
+        }
     }
 
     /// ¿Se le puede sacar el foco a lo que está activo ahora?
